@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jeu du Morpion</title>
+  <title>Mastermind</title>
   <style>
     * {
       margin: 0;
@@ -16,97 +16,227 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #1a1a2e;
       color: #e0e0e0;
+      padding: 1.5rem 1rem;
     }
 
     h1 {
       font-size: 2.4rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.3rem;
       color: #e94560;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #888;
+      margin-bottom: 1.2rem;
     }
 
     .status {
-      font-size: 1.3rem;
-      margin-bottom: 1.2rem;
-      height: 2rem;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      min-height: 2rem;
       color: #00d2ff;
+      text-align: center;
     }
 
+    /* Color palette for picking */
+    .palette {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1.2rem;
+    }
+
+    .palette-color {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .palette-color:hover {
+      transform: scale(1.15);
+    }
+
+    .palette-color.selected {
+      border-color: #fff;
+      transform: scale(1.15);
+    }
+
+    /* Board */
     .board {
-      display: grid;
-      grid-template-columns: repeat(3, 120px);
-      grid-template-rows: repeat(3, 120px);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 1.2rem;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
       gap: 6px;
     }
 
-    .cell {
-      width: 120px;
-      height: 120px;
+    .row-number {
+      width: 24px;
+      text-align: right;
+      font-size: 0.85rem;
+      color: #555;
+      margin-right: 4px;
+    }
+
+    .guess-pegs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .peg {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
       background: #16213e;
       border: 2px solid #0f3460;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      user-select: none;
+      transition: transform 0.1s, border-color 0.15s;
     }
 
-    .cell:hover:not(.taken) {
-      background: #1a3a6a;
-      transform: scale(1.05);
+    .peg:hover {
+      transform: scale(1.08);
+      border-color: #1a5a9a;
     }
 
-    .cell.taken {
+    .peg.locked {
       cursor: default;
     }
 
-    .cell.x {
-      color: #e94560;
+    .peg.locked:hover {
+      transform: none;
+      border-color: #0f3460;
     }
 
-    .cell.o {
-      color: #00d2ff;
+    /* Hint pegs */
+    .hints {
+      display: grid;
+      grid-template-columns: repeat(2, 18px);
+      grid-template-rows: repeat(2, 18px);
+      gap: 4px;
+      margin-left: 10px;
     }
 
-    .cell.win {
+    .hint-peg {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0d1b30;
+      border: 1px solid #0f3460;
+    }
+
+    .hint-peg.black {
+      background: #e0e0e0;
+      border-color: #fff;
+    }
+
+    .hint-peg.white {
+      background: #888;
+      border-color: #aaa;
+    }
+
+    /* Active row highlight */
+    .row.active .peg:not(.filled) {
+      border-color: #00d2ff;
+      animation: glow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { box-shadow: 0 0 4px rgba(0, 210, 255, 0.3); }
+      to { box-shadow: 0 0 12px rgba(0, 210, 255, 0.6); }
+    }
+
+    /* Secret row (hidden/revealed) */
+    .secret-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1rem;
+      padding: 10px 16px;
+      background: #16213e;
+      border-radius: 10px;
+      border: 2px solid #0f3460;
+    }
+
+    .secret-peg {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
       background: #0f3460;
-      animation: pulse 0.6s ease-in-out infinite alternate;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #555;
+      transition: background 0.4s;
     }
 
-    @keyframes pulse {
-      from { transform: scale(1); }
-      to { transform: scale(1.08); }
+    /* Buttons */
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 0.5rem;
     }
 
-    .restart {
-      margin-top: 1.5rem;
-      padding: 0.7rem 2rem;
-      font-size: 1.1rem;
+    .btn {
+      padding: 0.6rem 1.6rem;
+      font-size: 1rem;
       border: none;
       border-radius: 6px;
-      background: #e94560;
-      color: #fff;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
+      color: #fff;
     }
 
-    .restart:hover {
-      background: #c73652;
+    .btn:hover {
       transform: scale(1.05);
     }
 
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+      transform: none;
+    }
+
+    .btn-validate {
+      background: #00b894;
+    }
+
+    .btn-validate:hover:not(:disabled) {
+      background: #00a381;
+    }
+
+    .btn-clear {
+      background: #636e72;
+    }
+
+    .btn-clear:hover:not(:disabled) {
+      background: #535c60;
+    }
+
+    .btn-restart {
+      background: #e94560;
+    }
+
+    .btn-restart:hover {
+      background: #c73652;
+    }
+
+    /* Scoreboard */
     .scoreboard {
       display: flex;
-      gap: 2rem;
-      margin-bottom: 1.2rem;
-      font-size: 1.1rem;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
     }
 
     .scoreboard span {
@@ -115,125 +245,346 @@
       background: #16213e;
     }
 
-    .score-x { color: #e94560; }
-    .score-o { color: #00d2ff; }
-    .score-d { color: #aaa; }
+    .score-win { color: #00b894; }
+    .score-lose { color: #e94560; }
+
+    /* Victory animation */
+    .victory .secret-peg {
+      animation: bounce 0.5s ease-in-out infinite alternate;
+    }
+
+    .victory .secret-peg:nth-child(2) { animation-delay: 0.1s; }
+    .victory .secret-peg:nth-child(3) { animation-delay: 0.2s; }
+    .victory .secret-peg:nth-child(4) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-8px); }
+    }
+
+    /* Rules tooltip */
+    .rules-toggle {
+      font-size: 0.85rem;
+      color: #666;
+      cursor: pointer;
+      margin-bottom: 0.8rem;
+      text-decoration: underline;
+    }
+
+    .rules {
+      display: none;
+      max-width: 420px;
+      font-size: 0.85rem;
+      color: #999;
+      background: #16213e;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .rules.visible {
+      display: block;
+    }
+
+    .colors-ref {
+      display: flex;
+      gap: 4px;
+      margin-top: 0.4rem;
+    }
+
+    .colors-ref span {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
-  <h1>Jeu du Morpion</h1>
+  <h1>Mastermind</h1>
+  <p class="subtitle">Trouvez le code secret en 10 tentatives</p>
 
-  <div class="scoreboard">
-    <span class="score-x">X : <strong id="score-x">0</strong></span>
-    <span class="score-d">Nuls : <strong id="score-d">0</strong></span>
-    <span class="score-o">O : <strong id="score-o">0</strong></span>
+  <div class="rules-toggle" id="rules-toggle">Regles du jeu</div>
+  <div class="rules" id="rules">
+    L'ordinateur choisit un code secret de <strong>4 couleurs</strong> parmi 6.
+    Les couleurs peuvent se repeter. A chaque tentative, vous recevez des indices :
+    <br><br>
+    <strong style="color:#e0e0e0">&#9679; Blanc</strong> = bonne couleur, <strong>bonne position</strong><br>
+    <strong style="color:#888">&#9679; Gris</strong> = bonne couleur, <strong>mauvaise position</strong><br><br>
+    Cliquez sur une couleur dans la palette, puis sur un emplacement de la ligne active.
   </div>
 
-  <div class="status" id="status">Tour de X</div>
+  <div class="scoreboard">
+    <span class="score-win">Victoires : <strong id="score-win">0</strong></span>
+    <span class="score-lose">Defaites : <strong id="score-lose">0</strong></span>
+  </div>
+
+  <div class="secret-row" id="secret-row"></div>
+
+  <div class="status" id="status">Choisissez 4 couleurs</div>
+
+  <div class="palette" id="palette"></div>
 
   <div class="board" id="board"></div>
 
-  <button class="restart" id="restart">Nouvelle partie</button>
+  <div class="buttons">
+    <button class="btn btn-validate" id="btn-validate" disabled>Valider</button>
+    <button class="btn btn-clear" id="btn-clear">Effacer</button>
+    <button class="btn btn-restart" id="btn-restart">Nouvelle partie</button>
+  </div>
 
   <script>
-    const board = document.getElementById('board');
-    const statusEl = document.getElementById('status');
-    const restartBtn = document.getElementById('restart');
-    const scoreXEl = document.getElementById('score-x');
-    const scoreOEl = document.getElementById('score-o');
-    const scoreDEl = document.getElementById('score-d');
+    const COLORS = ['#e94560', '#00b894', '#0984e3', '#fdcb6e', '#6c5ce7', '#fd79a8'];
+    const CODE_LENGTH = 4;
+    const MAX_ATTEMPTS = 10;
 
-    const WINNING_COMBOS = [
-      [0,1,2], [3,4,5], [6,7,8],
-      [0,3,6], [1,4,7], [2,5,8],
-      [0,4,8], [2,4,6]
-    ];
-
-    let cells = [];
-    let currentPlayer = 'X';
+    let secret = [];
+    let currentRow = 0;
+    let guesses = []; // array of arrays
     let gameOver = false;
-    let scores = { X: 0, O: 0, D: 0 };
+    let selectedColor = null;
+    let scores = { win: 0, lose: 0 };
 
-    function createBoard() {
-      board.innerHTML = '';
-      cells = [];
-      currentPlayer = 'X';
+    const boardEl = document.getElementById('board');
+    const secretRowEl = document.getElementById('secret-row');
+    const statusEl = document.getElementById('status');
+    const paletteEl = document.getElementById('palette');
+    const btnValidate = document.getElementById('btn-validate');
+    const btnClear = document.getElementById('btn-clear');
+    const btnRestart = document.getElementById('btn-restart');
+    const scoreWinEl = document.getElementById('score-win');
+    const scoreLoseEl = document.getElementById('score-lose');
+    const rulesToggle = document.getElementById('rules-toggle');
+    const rulesEl = document.getElementById('rules');
+
+    function init() {
+      secret = generateSecret();
+      currentRow = 0;
+      guesses = [];
       gameOver = false;
-      statusEl.textContent = 'Tour de X';
+      selectedColor = null;
+      secretRowEl.classList.remove('victory');
 
-      for (let i = 0; i < 9; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.index = i;
-        cell.addEventListener('click', handleClick);
-        board.appendChild(cell);
-        cells.push(cell);
+      for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        guesses.push(new Array(CODE_LENGTH).fill(null));
+      }
+
+      renderPalette();
+      renderSecret(false);
+      renderBoard();
+      updateStatus();
+      btnValidate.disabled = true;
+    }
+
+    function generateSecret() {
+      const code = [];
+      for (let i = 0; i < CODE_LENGTH; i++) {
+        code.push(Math.floor(Math.random() * COLORS.length));
+      }
+      return code;
+    }
+
+    function renderPalette() {
+      paletteEl.innerHTML = '';
+      COLORS.forEach((color, idx) => {
+        const el = document.createElement('div');
+        el.className = 'palette-color';
+        el.style.background = color;
+        el.addEventListener('click', () => selectColor(idx));
+        paletteEl.appendChild(el);
+      });
+    }
+
+    function selectColor(idx) {
+      if (gameOver) return;
+      selectedColor = idx;
+      document.querySelectorAll('.palette-color').forEach((el, i) => {
+        el.classList.toggle('selected', i === idx);
+      });
+    }
+
+    function renderSecret(reveal) {
+      secretRowEl.innerHTML = '';
+      for (let i = 0; i < CODE_LENGTH; i++) {
+        const peg = document.createElement('div');
+        peg.className = 'secret-peg';
+        if (reveal) {
+          peg.style.background = COLORS[secret[i]];
+        } else {
+          peg.textContent = '?';
+        }
+        secretRowEl.appendChild(peg);
       }
     }
 
-    function handleClick(e) {
-      const cell = e.target;
-      if (cell.textContent || gameOver) return;
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      for (let r = 0; r < MAX_ATTEMPTS; r++) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'row';
+        if (r === currentRow && !gameOver) rowEl.classList.add('active');
 
-      cell.textContent = currentPlayer;
-      cell.classList.add('taken', currentPlayer.toLowerCase());
+        const numEl = document.createElement('div');
+        numEl.className = 'row-number';
+        numEl.textContent = r + 1;
+        rowEl.appendChild(numEl);
 
-      const winner = checkWinner();
-      if (winner) {
+        const guessContainer = document.createElement('div');
+        guessContainer.className = 'guess-pegs';
+
+        for (let c = 0; c < CODE_LENGTH; c++) {
+          const peg = document.createElement('div');
+          peg.className = 'peg';
+          if (guesses[r][c] !== null) {
+            peg.style.background = COLORS[guesses[r][c]];
+            peg.classList.add('filled');
+          }
+          if (r !== currentRow || gameOver) {
+            peg.classList.add('locked');
+          } else {
+            peg.addEventListener('click', () => placePeg(c));
+          }
+          guessContainer.appendChild(peg);
+        }
+
+        rowEl.appendChild(guessContainer);
+
+        // Hints
+        const hintsEl = document.createElement('div');
+        hintsEl.className = 'hints';
+        if (r < currentRow) {
+          const hints = computeHints(guesses[r]);
+          for (let h = 0; h < CODE_LENGTH; h++) {
+            const hintPeg = document.createElement('div');
+            hintPeg.className = 'hint-peg';
+            if (h < hints.black) {
+              hintPeg.classList.add('black');
+            } else if (h < hints.black + hints.white) {
+              hintPeg.classList.add('white');
+            }
+            hintsEl.appendChild(hintPeg);
+          }
+        } else {
+          for (let h = 0; h < CODE_LENGTH; h++) {
+            const hintPeg = document.createElement('div');
+            hintPeg.className = 'hint-peg';
+            hintsEl.appendChild(hintPeg);
+          }
+        }
+        rowEl.appendChild(hintsEl);
+
+        boardEl.appendChild(rowEl);
+      }
+    }
+
+    function placePeg(col) {
+      if (gameOver || selectedColor === null) return;
+      guesses[currentRow][col] = selectedColor;
+      renderBoard();
+      checkCanValidate();
+    }
+
+    function checkCanValidate() {
+      const full = guesses[currentRow].every(c => c !== null);
+      btnValidate.disabled = !full || gameOver;
+    }
+
+    function computeHints(guess) {
+      let black = 0;
+      let white = 0;
+      const secretCopy = [...secret];
+      const guessCopy = [...guess];
+
+      // First pass: exact matches
+      for (let i = 0; i < CODE_LENGTH; i++) {
+        if (guessCopy[i] === secretCopy[i]) {
+          black++;
+          secretCopy[i] = -1;
+          guessCopy[i] = -2;
+        }
+      }
+
+      // Second pass: color matches in wrong position
+      for (let i = 0; i < CODE_LENGTH; i++) {
+        if (guessCopy[i] === -2) continue;
+        const idx = secretCopy.indexOf(guessCopy[i]);
+        if (idx !== -1) {
+          white++;
+          secretCopy[idx] = -1;
+        }
+      }
+
+      return { black, white };
+    }
+
+    function validate() {
+      if (gameOver) return;
+      if (guesses[currentRow].some(c => c === null)) return;
+
+      const hints = computeHints(guesses[currentRow]);
+
+      if (hints.black === CODE_LENGTH) {
         gameOver = true;
-        statusEl.textContent = `${winner} a gagné !`;
-        scores[winner]++;
-        updateScoreboard();
-        highlightWin(winner);
+        currentRow++;
+        renderBoard();
+        renderSecret(true);
+        secretRowEl.classList.add('victory');
+        statusEl.textContent = 'Bravo ! Vous avez trouve le code !';
+        statusEl.style.color = '#00b894';
+        scores.win++;
+        updateScores();
+        btnValidate.disabled = true;
         return;
       }
 
-      if ([...cells].every(c => c.textContent)) {
+      currentRow++;
+
+      if (currentRow >= MAX_ATTEMPTS) {
         gameOver = true;
-        statusEl.textContent = 'Match nul !';
-        scores.D++;
-        updateScoreboard();
+        renderBoard();
+        renderSecret(true);
+        statusEl.textContent = 'Perdu ! Le code etait ci-dessus.';
+        statusEl.style.color = '#e94560';
+        scores.lose++;
+        updateScores();
+        btnValidate.disabled = true;
         return;
       }
 
-      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      statusEl.textContent = `Tour de ${currentPlayer}`;
+      renderBoard();
+      updateStatus();
+      btnValidate.disabled = true;
     }
 
-    function checkWinner() {
-      for (const combo of WINNING_COMBOS) {
-        const [a, b, c] = combo;
-        if (cells[a].textContent &&
-            cells[a].textContent === cells[b].textContent &&
-            cells[a].textContent === cells[c].textContent) {
-          return cells[a].textContent;
-        }
-      }
-      return null;
+    function clearRow() {
+      if (gameOver) return;
+      guesses[currentRow] = new Array(CODE_LENGTH).fill(null);
+      renderBoard();
+      btnValidate.disabled = true;
     }
 
-    function highlightWin(winner) {
-      for (const combo of WINNING_COMBOS) {
-        const [a, b, c] = combo;
-        if (cells[a].textContent === winner &&
-            cells[b].textContent === winner &&
-            cells[c].textContent === winner) {
-          cells[a].classList.add('win');
-          cells[b].classList.add('win');
-          cells[c].classList.add('win');
-          return;
-        }
-      }
+    function updateStatus() {
+      statusEl.style.color = '#00d2ff';
+      const remaining = MAX_ATTEMPTS - currentRow;
+      statusEl.textContent = `Tentative ${currentRow + 1}/${MAX_ATTEMPTS} — Choisissez 4 couleurs`;
     }
 
-    function updateScoreboard() {
-      scoreXEl.textContent = scores.X;
-      scoreOEl.textContent = scores.O;
-      scoreDEl.textContent = scores.D;
+    function updateScores() {
+      scoreWinEl.textContent = scores.win;
+      scoreLoseEl.textContent = scores.lose;
     }
 
-    restartBtn.addEventListener('click', createBoard);
-    createBoard();
+    rulesToggle.addEventListener('click', () => {
+      rulesEl.classList.toggle('visible');
+      rulesToggle.textContent = rulesEl.classList.contains('visible') ? 'Masquer les regles' : 'Regles du jeu';
+    });
+
+    btnValidate.addEventListener('click', validate);
+    btnClear.addEventListener('click', clearRow);
+    btnRestart.addEventListener('click', init);
+
+    init();
   </script>
 </body>
 </html>
